@@ -65,6 +65,17 @@ public final class Main {
         window1.setVisible(true);
         window2.setVisible(true);
         window3.setVisible(true);
+
+        // As janelas passam a se mover sozinhas, quicando nas bordas da tela.
+        new BounceAnimator(window1, window2, window3).start();
+
+        // Toca o audio em segundo plano. Se falhar, o motivo aparece no titulo da Janela 1.
+        new AudioPlayer(reason -> SwingUtilities.invokeLater(
+                () -> window1.setTitle("Janela 1 - Imagem 1 (sem audio: " + shorten(reason) + ")"))).start();
+    }
+
+    private static String shorten(String text) {
+        return text.length() <= 90 ? text : text.substring(0, 87) + "...";
     }
 
     /** Posiciona as tres janelas lado a lado, ajustando ao tamanho da tela. */
