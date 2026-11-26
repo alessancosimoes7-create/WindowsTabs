@@ -24,7 +24,8 @@ jobs:
       - name: Compilar
         run: |
           mkdir -p build/classes
-          find WindowsTabs/src/main/java -name "*.java" > build/sources.txt
+          find . -name "*.java" -not -path "./build/*" > build/sources.txt
+          cat build/sources.txt
           javac --release 17 -encoding UTF-8 -Xlint:all -d build/classes @build/sources.txt
 
       - name: Gerar WindowsTabs.jar
