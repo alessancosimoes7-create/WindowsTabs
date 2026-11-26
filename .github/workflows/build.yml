@@ -10,6 +10,7 @@ jobs:
   build:
     name: Compilar e gerar WindowsTabs.jar
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Baixar o codigo
