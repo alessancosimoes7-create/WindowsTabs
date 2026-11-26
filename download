@@ -1,0 +1,7 @@
+build/
+*.class
+WindowsTabs.jar
+.idea/
+*.iml
+.vscode/
+out/
