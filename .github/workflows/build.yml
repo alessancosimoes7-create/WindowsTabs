@@ -22,6 +22,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Baixar biblioteca de MP3 (JLayer)
+        run: |
+          mkdir -p lib
+          curl -fL --retry 3 -o lib/jlayer.jar https://repo1.maven.org/maven2/com/googlecode/soundlibs/jlayer/1.0.1.4/jlayer-1.0.1.4.jar || curl -fL --retry 3 -o lib/jlayer.jar https://repo1.maven.org/maven2/javazoom/jlayer/1.0.1/jlayer-1.0.1.jar
+          ls -l lib
+          unzip -l lib/jlayer.jar | grep "javazoom/jl/player/Player.class"
+
       - name: Conferir arquivos
         run: |
           for f in $(find . -name "*.java" -not -path "./build/*"); do
@@ -34,13 +41,15 @@ jobs:
           mkdir -p build/classes
           find . -name "*.java" -not -path "./build/*" > build/sources.txt
           cat build/sources.txt
-          javac --release 17 -encoding UTF-8 -Xlint:all -d build/classes @build/sources.txt
+          javac --release 17 -encoding UTF-8 -Xlint:all -cp lib/jlayer.jar -d build/classes @build/sources.txt
 
       - name: Gerar WindowsTabs.jar
         run: |
+          (cd build/classes && jar xf ../../lib/jlayer.jar)
+          rm -rf build/classes/META-INF
           jar --create --file WindowsTabs.jar --main-class com.windowstabs.Main -C build/classes .
-          echo "Conteudo do JAR:"
-          jar --list --file WindowsTabs.jar
+          echo "Conteudo do JAR (resumo):"
+          jar --list --file WindowsTabs.jar | grep -E "windowstabs|javazoom/jl/player/Player.class"
           echo "Manifest:"
           unzip -p WindowsTabs.jar META-INF/MANIFEST.MF
 
