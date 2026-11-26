@@ -1,63 +1,52 @@
-package com.windowstabs;
+name: Build WindowsTabs
 
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
 
-/**
- * Uma janela real e independente do Windows (JFrame de nivel superior).
- *
- * Comportamento desta versao:
- *   - NAO pode ser fechada (botao X e Alt+F4 sao ignorados);
- *   - fica sempre por cima das outras janelas, mesmo ao clicar em outro lugar da tela;
- *   - se for minimizada (inclusive por Win+D), volta sozinha;
- *   - continua podendo ser movida e redimensionada.
- *
- * A saida do programa e feita apenas com Ctrl + C (veja AppController).
- */
-final class ImageWindow extends JFrame {
+jobs:
+  build:
+    name: Compilar e gerar WindowsTabs.jar
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
 
-    private static final long serialVersionUID = 1L;
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
 
-    ImageWindow(AppController controller, String title, JComponent content) {
-        super(title);
+      - name: Instalar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-        // Botao X / Alt+F4 nao fecham a janela.
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+      - name: Conferir arquivos
+        run: |
+          for f in $(find . -name "*.java" -not -path "./build/*"); do
+            echo "== $f"
+            grep -m1 -E "^(public )?(final )?class " "$f" || echo "   (nenhuma classe encontrada)"
+          done
 
-        // Sempre por cima, mesmo sem foco.
-        setAlwaysOnTop(true);
+      - name: Compilar
+        run: |
+          mkdir -p build/classes
+          find . -name "*.java" -not -path "./build/*" > build/sources.txt
+          cat build/sources.txt
+          javac --release 17 -encoding UTF-8 -Xlint:all -d build/classes @build/sources.txt
 
-        setResizable(true);
-        setMinimumSize(new Dimension(200, 150));
+      - name: Gerar WindowsTabs.jar
+        run: |
+          jar --create --file WindowsTabs.jar --main-class com.windowstabs.Main -C build/classes .
+          echo "Conteudo do JAR:"
+          jar --list --file WindowsTabs.jar
+          echo "Manifest:"
+          unzip -p WindowsTabs.jar META-INF/MANIFEST.MF
 
-        setLayout(new BorderLayout());
-        add(content, BorderLayout.CENTER);
-
-        // Se alguem minimizar a janela, ela e restaurada imediatamente.
-        addWindowStateListener(event -> {
-            if ((event.getNewState() & Frame.ICONIFIED) != 0) {
-                int restored = event.getNewState() & ~Frame.ICONIFIED;
-                SwingUtilities.invokeLater(() -> {
-                    setExtendedState(restored);
-                    setAlwaysOnTop(true);
-                    toFront();
-                });
-            }
-        });
-
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-                controller.windowClosed(ImageWindow.this);
-            }
-        });
-
-        controller.register(this);
-    }
-}
+      - name: Publicar o JAR em Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsTabs
+          path: WindowsTabs.jar
+          if-no-files-found: error
